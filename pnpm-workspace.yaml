@@ -14,3 +14,5 @@ ignoredBuiltDependencies:
   - cpu-features
   - protobufjs
   - ssh2
+  # Telemetria de instalação do swagger-ui-dist (via @nestjs/swagger); não é necessária.
+  - '@scarf/scarf'
