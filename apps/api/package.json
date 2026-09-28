@@ -5,7 +5,7 @@
   "license": "UNLICENSED",
   "description": "API HTTP e worker do NX-Balance (NestJS + Prisma + PostgreSQL).",
   "scripts": {
-    "dev": "concurrently -n api,worker -c blue,magenta \"pnpm dev:api\" \"pnpm dev:worker\"",
+    "dev": "concurrently --kill-others-on-fail -n api,worker -c blue,magenta \"pnpm dev:api\" \"pnpm dev:worker\"",
     "dev:api": "nest start --watch",
     "dev:worker": "cross-env APP_MODE=worker nest start --watch",
     "postinstall": "prisma generate",

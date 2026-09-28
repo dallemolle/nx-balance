@@ -16,7 +16,18 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": ["coverage/**"],
+      "passThroughEnv": [
+        "DOCKER_HOST",
+        "DOCKER_TLS_VERIFY",
+        "DOCKER_CERT_PATH",
+        "DOCKER_CONFIG",
+        "TESTCONTAINERS_HOST_OVERRIDE",
+        "TESTCONTAINERS_RYUK_DISABLED",
+        "TESTCONTAINERS_RYUK_PRIVILEGED",
+        "TESTCONTAINERS_CHECKS_DISABLE",
+        "TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE"
+      ]
     }
   }
 }

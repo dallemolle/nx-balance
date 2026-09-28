@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache do Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ github.sha }}
+          restore-keys: |
+            turbo-
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # Docker já vem instalado no runner ubuntu-latest, então o Testcontainers
+      # usado pelos testes e2e da API funciona sem configuração extra.
+      - name: Lint, typecheck, testes e build
+        run: pnpm turbo run lint typecheck test build --cache-dir=.turbo

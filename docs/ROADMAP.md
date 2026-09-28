@@ -1,6 +1,6 @@
 # Roadmap e status
 
-**Agora:** M0 — Fundação (não iniciada). **Próximo marco:** MVP Web completo (M0–M10) em uso real pela família.
+**Agora:** M0 — Fundação (em revisão). **Próximo marco:** MVP Web completo (M0–M10) em uso real pela família.
 
 Este é o painel do projeto. Cada etapa tem um arquivo em [fases/](fases/) com o checklist de requisitos e tarefas. Este arquivo mostra só o resumo e é atualizado sempre que uma etapa muda de status.
 
@@ -10,7 +10,7 @@ Este é o painel do projeto. Cada etapa tem um arquivo em [fases/](fases/) com o
 
 | Etapa | Entrega | Requisitos | Depende de | Status | Progresso |
 | --- | --- | --- | --- | --- | --- |
-| [M0](fases/M0-fundacao.md) | Fundação: monorepo, infraestrutura local, CI, `core` de dinheiro e datas | RNF-13, 14, 18, 19 | — | ⬜ | 0/9 |
+| [M0](fases/M0-fundacao.md) | Fundação: monorepo, infraestrutura local, CI, `core` de dinheiro e datas | RNF-13, 14, 18, 19 | — | 🟦 | 9/9 |
 | [M1](fases/M1-identidade-e-lar.md) | Cadastro, login, Lar, membros, convites, papéis, shell do app | RF-01, RF-02, RF-13.1/13.3/13.7 | M0 | ⬜ | 0/15 |
 | [M2](fases/M2-contas-e-categorias.md) | Contas financeiras, categorias, subcategorias e tags | RF-03, RF-05, RF-02.7 | M1 | ⬜ | 0/18 |
 | [M3](fases/M3-lancamentos.md) | Lançamentos, transferências, extrato, anexos e auditoria | RF-04, RF-02.8 | M2 | ⬜ | 0/11 |
@@ -49,3 +49,4 @@ Cada fase seguinte ganha seus próprios arquivos de etapa quando a anterior cump
 | Data | Evento |
 | --- | --- |
 | 2026-09-27 | Especificação funcional aprovada; arquitetura, ADRs 0001–0005 e plano de etapas criados |
+| 2026-09-28 | M0 — Fundação em revisão: monorepo, infraestrutura local, CI e `core` de dinheiro e datas prontos (9/9) |
