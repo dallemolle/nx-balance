@@ -1,5 +1,5 @@
 // @ts-check
-const { baseConfig } = require('@nx-balance/config/eslint.config.js');
+const { baseConfig } = require('@nx-balance/config/eslint.js');
 
 module.exports = [
   {

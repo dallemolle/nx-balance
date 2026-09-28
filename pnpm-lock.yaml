@@ -14,6 +14,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^21.2.3
         version: 21.2.3
+      '@nx-balance/config':
+        specifier: workspace:*
+        version: link:packages/config
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(jiti@2.6.1)
