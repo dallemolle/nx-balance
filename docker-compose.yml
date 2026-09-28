@@ -2,12 +2,14 @@
 # Uso: `docker compose up -d` na raiz do repositório.
 # MinIO: as imagens oficiais `minio/minio` e `minio/mc` deixaram de ser publicadas no
 # Docker Hub; `pgsty/minio` e `pgsty/mc` são builds comunitários equivalentes (drop-in).
+# Imagens fixadas em versões exatas (atualize de propósito, não por acaso) e portas
+# publicadas só em 127.0.0.1: os serviços de dev não ficam expostos na rede local.
 # Os testes e2e NÃO usam este Postgres: sobem um contêiner próprio via Testcontainers.
 name: nx-balance
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16.15-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: nxbalance
@@ -16,7 +18,7 @@ services:
     ports:
       # Porta do host sobrescrevível (ex.: POSTGRES_PORT=5433) se a 5432 estiver ocupada;
       # nesse caso ajuste também a porta do DATABASE_URL em apps/api/.env.
-      - '${POSTGRES_PORT:-5432}:5432'
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -26,22 +28,22 @@ services:
       retries: 10
 
   mailpit:
-    image: axllent/mailpit
+    image: axllent/mailpit:v1.31.3
     restart: unless-stopped
     ports:
-      - '1025:1025' # SMTP
-      - '8025:8025' # interface web
+      - '127.0.0.1:1025:1025' # SMTP
+      - '127.0.0.1:8025:8025' # interface web
 
   minio:
-    image: pgsty/minio
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     restart: unless-stopped
     command: server /data --console-address ':9001'
     environment:
       MINIO_ROOT_USER: nxbalance
       MINIO_ROOT_PASSWORD: nxbalance123
     ports:
-      - '9000:9000' # API S3
-      - '9001:9001' # console web
+      - '127.0.0.1:9000:9000' # API S3
+      - '127.0.0.1:9001:9001' # console web
     volumes:
       - minio-data:/data
     healthcheck:
@@ -51,7 +53,7 @@ services:
       retries: 10
 
   minio-init:
-    image: pgsty/mc
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     depends_on:
       minio:
         condition: service_healthy
