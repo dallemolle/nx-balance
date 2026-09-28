@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { config as loadDotenv } from 'dotenv';
 import { createApiApp } from './create-api-app';
 import { loadEnv } from './infra/config/env';
+import { startWorker } from './start-worker';
 
 async function bootstrap(): Promise<void> {
   // Em desenvolvimento lê o .env local; em produção as variáveis já vêm do ambiente.
@@ -9,8 +10,8 @@ async function bootstrap(): Promise<void> {
   const env = loadEnv();
 
   if (env.APP_MODE === 'worker') {
-    // TODO(Task 7): chamar startWorker() de ./start-worker.
-    throw new Error('Modo worker ainda não implementado.');
+    await startWorker();
+    return;
   }
 
   const app = await createApiApp();
