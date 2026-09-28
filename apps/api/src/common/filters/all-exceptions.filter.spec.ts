@@ -108,6 +108,57 @@ describe('toErrorResponse', () => {
     });
   });
 
+  /** Erro no formato do `http-errors` (lançado pelo body-parser do Express). */
+  function httpError(status: number, props: Record<string, unknown>): Error {
+    return Object.assign(new Error('erro do body-parser'), {
+      status,
+      statusCode: status,
+      ...props,
+    });
+  }
+
+  it('body-parser: corpo grande demais (413 exposto) vira PAYLOAD_TOO_LARGE', () => {
+    const exception = httpError(413, { expose: true, type: 'entity.too.large' });
+    expect(toErrorResponse(exception)).toEqual({
+      status: 413,
+      body: { code: 'PAYLOAD_TOO_LARGE', message: 'Requisição grande demais.' },
+    });
+  });
+
+  it('body-parser: JSON inválido (400 exposto) vira BAD_REQUEST', () => {
+    const exception = httpError(400, { expose: true, type: 'entity.parse.failed' });
+    expect(toErrorResponse(exception)).toEqual({
+      status: 400,
+      body: { code: 'BAD_REQUEST', message: 'Requisição inválida.' },
+    });
+  });
+
+  it('4xx exposto sem mapeamento próprio mantém o status com BAD_REQUEST', () => {
+    expect(toErrorResponse(httpError(415, { expose: true }))).toEqual({
+      status: 415,
+      body: { code: 'BAD_REQUEST', message: 'Requisição inválida.' },
+    });
+  });
+
+  it('Error com status 413 mas sem expose continua 500', () => {
+    const exception = Object.assign(new Error('interno'), { status: 413 });
+    expect(toErrorResponse(exception)).toEqual({
+      status: 500,
+      body: { code: 'INTERNAL_ERROR', message: 'Erro interno. Tente novamente.' },
+    });
+  });
+
+  it('erro exposto com status 5xx continua 500', () => {
+    expect(toErrorResponse(httpError(503, { expose: true })).status).toBe(500);
+  });
+
+  it('HttpException 413 vira PAYLOAD_TOO_LARGE', () => {
+    expect(toErrorResponse(new HttpException('x', HttpStatus.PAYLOAD_TOO_LARGE)).body).toEqual({
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Requisição grande demais.',
+    });
+  });
+
   it('valores que não são Error também viram 500', () => {
     expect(toErrorResponse('boom').status).toBe(500);
   });

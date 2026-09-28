@@ -27,7 +27,38 @@ const CLIENT_ERRORS: Partial<Record<number, { code: ErrorCode; message: string }
   [HttpStatus.FORBIDDEN]: { code: ERROR_CODES.FORBIDDEN, message: 'Acesso negado.' },
   [HttpStatus.NOT_FOUND]: { code: ERROR_CODES.NOT_FOUND, message: 'Recurso não encontrado.' },
   [HttpStatus.CONFLICT]: { code: ERROR_CODES.CONFLICT, message: 'Conflito com o estado atual.' },
+  [HttpStatus.PAYLOAD_TOO_LARGE]: {
+    code: ERROR_CODES.PAYLOAD_TOO_LARGE,
+    message: 'Requisição grande demais.',
+  },
 };
+
+/** Resposta padrão de um 4xx: mapeado na tabela ou, sem mapeamento, BAD_REQUEST. */
+function clientErrorOf(status: number): ErrorResponse {
+  const known = CLIENT_ERRORS[status];
+  if (known) return { ...known };
+  return { code: ERROR_CODES.BAD_REQUEST, message: 'Requisição inválida.' };
+}
+
+/**
+ * Status 4xx de um erro "exposto" do ecossistema Express (padrão `http-errors`,
+ * usado pelo body-parser: JSON inválido, corpo grande demais etc.). Esses erros
+ * não são HttpException, mas trazem `status`/`statusCode` 4xx e `expose: true`,
+ * indicando que são falhas do cliente seguras de sinalizar. Sem `expose: true`
+ * o erro é tratado como inesperado (500).
+ */
+function exposedClientStatusOf(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const { status, statusCode, expose } = error as {
+    status?: unknown;
+    statusCode?: unknown;
+    expose?: unknown;
+  };
+  if (expose !== true) return undefined;
+  const value = typeof status === 'number' ? status : statusCode;
+  if (typeof value !== 'number' || !Number.isInteger(value)) return undefined;
+  return value >= 400 && value < 500 ? value : undefined;
+}
 
 interface ValidationIssue {
   path: readonly PropertyKey[];
@@ -82,16 +113,14 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
     const status = exception.getStatus();
     const custom = domainErrorOf(exception.getResponse());
     if (custom) return { status, body: custom };
-    const known = CLIENT_ERRORS[status];
-    if (known) return { status, body: { ...known } };
-    if (status < 500) {
-      // 4xx sem mapeamento próprio (ex.: 405, 413, 429): mantém o status.
-      return {
-        status,
-        body: { code: ERROR_CODES.BAD_REQUEST, message: 'Requisição inválida.' },
-      };
-    }
+    // 4xx sem mapeamento próprio (ex.: 405, 429) mantém o status com BAD_REQUEST.
+    if (status < 500) return { status, body: clientErrorOf(status) };
     return { status, body: { ...INTERNAL } };
+  }
+
+  const exposedStatus = exposedClientStatusOf(exception);
+  if (exposedStatus !== undefined) {
+    return { status: exposedStatus, body: clientErrorOf(exposedStatus) };
   }
 
   return { status: HttpStatus.INTERNAL_SERVER_ERROR, body: { ...INTERNAL } };
@@ -99,7 +128,8 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
 
 /**
  * Filtro global: toda resposta de erro sai no formato `ErrorResponse`.
- * Erros 5xx são registrados no log com a stack.
+ * Erros 5xx são registrados no log com a stack; 4xx vindos de fora do Nest
+ * (ex.: body-parser) viram aviso.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -113,6 +143,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (status >= 500) {
       const stack = exception instanceof Error ? exception.stack : String(exception);
       this.logger.error(exception instanceof Error ? exception.message : 'Erro não tratado', stack);
+    } else if (!(exception instanceof HttpException)) {
+      // Falha do cliente vinda de fora do Nest (ex.: body-parser): aviso, sem stack.
+      const message = exception instanceof Error ? exception.message : String(exception);
+      this.logger.warn(`${status} ${body.code}: ${message}`);
     }
 
     const { httpAdapter } = this.adapterHost;

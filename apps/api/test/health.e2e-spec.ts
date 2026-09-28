@@ -39,6 +39,38 @@ describe('API HTTP (e2e)', () => {
     expect(res.body.message).toBe('Recurso não encontrado.');
   });
 
+  it('corpo JSON acima do limite do body-parser (100kb) responde 413', async () => {
+    // O body-parser do Express roda como middleware global, antes do roteamento:
+    // o corpo é lido (e recusado) mesmo numa rota que só aceita GET.
+    const oversized = JSON.stringify({ data: 'x'.repeat(200 * 1024) });
+    const res = await request(app.getHttpServer())
+      .post('/v1/health')
+      .set('Content-Type', 'application/json')
+      .send(oversized)
+      .expect(413);
+    expect(errorResponseSchema.parse(res.body)).toEqual({
+      code: 'PAYLOAD_TOO_LARGE',
+      message: 'Requisição grande demais.',
+    });
+  });
+
+  it('JSON malformado responde 400 no formato de erro', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/v1/health')
+      .set('Content-Type', 'application/json')
+      .send('{"quebrado":')
+      .expect(400);
+    expect(errorResponseSchema.parse(res.body).code).toBe('BAD_REQUEST');
+  });
+
+  it('corpo pequeno numa rota só-GET segue para o roteador (404)', async () => {
+    await request(app.getHttpServer())
+      .post('/v1/health')
+      .set('Content-Type', 'application/json')
+      .send('{}')
+      .expect(404);
+  });
+
   it('OpenAPI documenta o /v1/health', async () => {
     const res = await request(app.getHttpServer()).get('/docs-json').expect(200);
     expect(res.body.paths['/v1/health']).toBeDefined();
