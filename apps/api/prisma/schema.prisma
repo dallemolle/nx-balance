@@ -1,0 +1,23 @@
+// Schema do banco do NX-Balance. A URL de conexão fica em `prisma.config.ts`.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  // A API é CommonJS (NestJS); imports relativos com `.js` resolvem para os
+  // `.ts` gerados tanto no tsc/SWC quanto no Vitest e no tsx.
+  moduleFormat        = "cjs"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Configurações do sistema em formato chave/valor.
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("system_settings")
+}

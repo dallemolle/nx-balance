@@ -1,0 +1,67 @@
+# Serviços locais de desenvolvimento do NX-Balance.
+# Uso: `docker compose up -d` na raiz do repositório.
+# MinIO: as imagens oficiais `minio/minio` e `minio/mc` deixaram de ser publicadas no
+# Docker Hub; `pgsty/minio` e `pgsty/mc` são builds comunitários equivalentes (drop-in).
+# Os testes e2e NÃO usam este Postgres: sobem um contêiner próprio via Testcontainers.
+name: nx-balance
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nxbalance
+      POSTGRES_PASSWORD: nxbalance
+      POSTGRES_DB: nxbalance
+    ports:
+      # Porta do host sobrescrevível (ex.: POSTGRES_PORT=5433) se a 5432 estiver ocupada;
+      # nesse caso ajuste também a porta do DATABASE_URL em apps/api/.env.
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nxbalance -d nxbalance']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit
+    restart: unless-stopped
+    ports:
+      - '1025:1025' # SMTP
+      - '8025:8025' # interface web
+
+  minio:
+    image: pgsty/minio
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: nxbalance
+      MINIO_ROOT_PASSWORD: nxbalance123
+    ports:
+      - '9000:9000' # API S3
+      - '9001:9001' # console web
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio-init:
+    image: pgsty/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 nxbalance nxbalance123 &&
+      mc mb --ignore-existing local/nx-balance-dev
+      "
+    restart: 'no'
+
+volumes:
+  postgres-data:
+  minio-data:
