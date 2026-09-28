@@ -28,6 +28,9 @@ out/
 .parcel-cache/
 *.tsbuildinfo
 
+# ---- Prisma (gerado) ----
+apps/api/src/generated/
+
 # ---- Testes / cobertura ----
 coverage/
 .nyc_output/

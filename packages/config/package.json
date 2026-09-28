@@ -1,0 +1,7 @@
+{
+  "name": "@nx-balance/config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "Configuração compartilhada (TypeScript, ESLint, Prettier, Vitest) para os pacotes e apps do monorepo."
+}

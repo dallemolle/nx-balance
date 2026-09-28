@@ -1,0 +1,13 @@
+node_modules
+dist
+coverage
+.turbo
+pnpm-lock.yaml
+
+# Conteúdo tratado fora do escopo das ferramentas compartilhadas
+docs
+.claude
+.agents
+.superpowers
+skills-lock.json
+README.md
