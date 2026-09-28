@@ -5,7 +5,7 @@ const { baseConfig } = require('@nx-balance/config/eslint.js');
 module.exports = [
   {
     // `src/generated/**` é o Prisma Client gerado por `prisma generate`.
-    ignores: ['dist/**', 'coverage/**', 'src/generated/**'],
+    ignores: ['dist/**', 'dist-worker/**', 'coverage/**', 'src/generated/**'],
   },
   ...baseConfig,
   {

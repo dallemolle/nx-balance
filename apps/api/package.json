@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently --kill-others-on-fail -n api,worker -c blue,magenta \"pnpm dev:api\" \"pnpm dev:worker\"",
     "dev:api": "nest start --watch",
-    "dev:worker": "cross-env APP_MODE=worker nest start --watch",
+    "dev:worker": "cross-env APP_MODE=worker nest start --watch --path tsconfig.worker.json",
     "postinstall": "prisma generate",
     "build": "nest build",
     "lint": "eslint .",

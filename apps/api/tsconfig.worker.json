@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // Usado só pelo `pnpm dev:worker`: compila numa pasta própria para que o
+  // `nest start --watch` do worker e o da API (com `deleteOutDir`) nunca
+  // apaguem nem sobrescrevam a saída um do outro.
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "outDir": "dist-worker"
+  }
+}
