@@ -26,20 +26,22 @@ Status do projeto e checklist de cada etapa: [`docs/ROADMAP.md`](docs/ROADMAP.md
 git clone <url-do-repo>
 cd nx-balance
 pnpm i
-cp apps/api/.env.example apps/api/.env
 docker compose up -d
-pnpm db:migrate
 pnpm dev
 ```
 
-`pnpm dev` sobe a API, o worker e o web juntos (via Turborepo). Não há passo manual além destes.
+`pnpm dev` sobe a API, o worker e o web juntos (via Turborepo). Não há passo manual além destes: antes de subir a API e o worker, o `dev` da API cria `apps/api/.env` a partir do `.env.example` (se ainda não existir; um `.env` existente nunca é sobrescrito) e aplica as migrations pendentes (`prisma migrate deploy`).
 
-**Porta do Postgres ocupada?** O compose expõe o Postgres em `${POSTGRES_PORT:-5432}`. Se a 5432 já estiver em uso, suba com outra porta e ajuste o `.env` da API:
+As configurações locais ficam em `apps/api/.env` — edite-o à vontade depois de criado.
+
+**Porta do Postgres ocupada?** O compose expõe o Postgres em `${POSTGRES_PORT:-5432}`. Se a 5432 já estiver em uso, use outra porta nos dois comandos (no primeiro `pnpm dev` o `.env` já é criado apontando para ela):
 
 ```bash
 POSTGRES_PORT=5433 docker compose up -d
-# depois, em apps/api/.env, aponte DATABASE_URL para a mesma porta (…@localhost:5433/nxbalance)
+POSTGRES_PORT=5433 pnpm dev
 ```
+
+(No PowerShell: `$env:POSTGRES_PORT = '5433'` antes de `docker compose up -d` e `pnpm dev`.) Se o `apps/api/.env` já existir, ajuste nele a porta do `DATABASE_URL` (…@localhost:5433/nxbalance).
 
 > O MinIO local usa as imagens comunitárias `pgsty/minio` / `pgsty/mc` — as imagens oficiais `minio/minio` e `minio/mc` deixaram de ser publicadas no Docker Hub.
 
@@ -65,7 +67,7 @@ Na raiz do monorepo (via Turborepo, atingem todos os pacotes/apps):
 | `pnpm typecheck` | checagem de tipos (`tsc --noEmit`) |
 | `pnpm test` | testes de todos os pacotes e apps (o `test` da API precisa do Docker rodando: usa Testcontainers para os testes e2e) |
 | `pnpm format` | formata o repositório com Prettier |
-| `pnpm db:migrate` | aplica as migrations do Prisma (`prisma migrate dev`) |
+| `pnpm db:migrate` | cria uma nova migration a partir do `schema.prisma` e a aplica (`prisma migrate dev`); as migrations existentes já são aplicadas pelo `pnpm dev` |
 | `pnpm db:seed` | popula o banco (`prisma db seed`) |
 | `pnpm db:reset` | reseta o banco de desenvolvimento (`prisma migrate reset --force`) |
 
