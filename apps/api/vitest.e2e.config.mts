@@ -14,5 +14,7 @@ export default defineConfig({
     testTimeout: 30_000,
     // Um único banco compartilhado: os arquivos e2e rodam em sequência.
     fileParallelism: false,
+    // Logs do Pino só em nível fatal para a saída dos testes ficar limpa.
+    env: { LOG_LEVEL: 'fatal' },
   },
 });
