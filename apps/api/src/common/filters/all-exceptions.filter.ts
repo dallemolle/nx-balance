@@ -7,7 +7,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { ERROR_CODES, type ErrorCode, type ErrorResponse } from '@nx-balance/contracts';
+import {
+  ERROR_CODES,
+  type ErrorCode,
+  type ErrorResponse,
+  errorResponseSchema,
+} from '@nx-balance/contracts';
 import { ZodValidationException } from 'nestjs-zod';
 
 const INTERNAL: ErrorResponse = {
@@ -38,10 +43,28 @@ function issuesOf(error: unknown): ValidationIssue[] {
   return [];
 }
 
+const KNOWN_CODES = new Set<string>(Object.values(ERROR_CODES));
+
+/**
+ * Corpo de erro de domínio explícito: objeto no formato `ErrorResponse` com
+ * `code` de `ERROR_CODES`. As respostas padrão do Nest
+ * (`{ message, error, statusCode }`) não têm `code` e não passam.
+ */
+function domainErrorOf(response: unknown): ErrorResponse | undefined {
+  const parsed = errorResponseSchema.safeParse(response);
+  if (!parsed.success || !KNOWN_CODES.has(parsed.data.code)) return undefined;
+  const { code, message, details } = parsed.data;
+  return details === undefined ? { code, message } : { code, message, details };
+}
+
 /**
  * Converte qualquer exceção no formato único de erro da API
  * (`{ code, message, details? }`). Nunca expõe a mensagem de erros
- * inesperados nem de erros 5xx.
+ * inesperados nem a mensagem padrão (em inglês) do Nest.
+ *
+ * Convenção: para uma mensagem de domínio, lance a HttpException com o corpo
+ * `{ code, message, details? }` (ex.: `new ConflictException({ code: 'CONFLICT',
+ * message: 'Categoria já existe.' })`); qualquer outra forma usa o padrão do status.
  */
 export function toErrorResponse(exception: unknown): { status: number; body: ErrorResponse } {
   if (exception instanceof ZodValidationException) {
@@ -57,6 +80,8 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
 
   if (exception instanceof HttpException) {
     const status = exception.getStatus();
+    const custom = domainErrorOf(exception.getResponse());
+    if (custom) return { status, body: custom };
     const known = CLIENT_ERRORS[status];
     if (known) return { status, body: { ...known } };
     if (status < 500) {

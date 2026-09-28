@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Logger } from '@nestjs/common';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Env } from '../../infra/config/env';
 import type { PrismaService } from '../../infra/prisma/prisma.service';
 import { HealthController } from './health.controller';
@@ -15,8 +16,15 @@ function fakeResponse(): { status: ReturnType<typeof vi.fn> } {
 }
 
 describe('HealthController', () => {
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+  });
+
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it('responde ok quando o SELECT 1 funciona', async () => {
@@ -26,6 +34,7 @@ describe('HealthController', () => {
     );
     expect(body).toEqual({ status: 'ok', database: 'up', version: '1.2.3' });
     expect(res.status).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('responde 503 degraded quando o banco demora mais de 2 s', async () => {
@@ -39,6 +48,16 @@ describe('HealthController', () => {
       version: '1.2.3',
     });
     expect(res.status).toHaveBeenCalledWith(503);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('timeout do banco'));
+  });
+
+  it('registra o motivo da falha em warn, fora da resposta', async () => {
+    const res = fakeResponse();
+    const body = await controllerWith(() => Promise.reject(new Error('ECONNREFUSED'))).check(
+      res as never,
+    );
+    expect(body).toEqual({ status: 'degraded', database: 'down', version: '1.2.3' });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('ECONNREFUSED'));
   });
 
   it('não deixa o timer do timeout pendente quando o banco responde', async () => {

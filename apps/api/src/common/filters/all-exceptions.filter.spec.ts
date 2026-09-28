@@ -44,15 +44,60 @@ describe('toErrorResponse', () => {
   });
 
   it.each([
-    [new BadRequestException(), 400, 'BAD_REQUEST'],
-    [new UnauthorizedException(), 401, 'UNAUTHORIZED'],
-    [new ForbiddenException(), 403, 'FORBIDDEN'],
-    [new ConflictException(), 409, 'CONFLICT'],
-  ])('HttpException %# mantém o status e mapeia o code', (exception, status, code) => {
-    const result = toErrorResponse(exception);
-    expect(result.status).toBe(status);
-    expect(result.body.code).toBe(code);
-    expect(result.body.details).toBeUndefined();
+    ['BAD_REQUEST', new BadRequestException(), 400, 'Requisição inválida.'],
+    ['UNAUTHORIZED', new UnauthorizedException(), 401, 'Não autenticado.'],
+    ['FORBIDDEN', new ForbiddenException(), 403, 'Acesso negado.'],
+    ['CONFLICT', new ConflictException(), 409, 'Conflito com o estado atual.'],
+  ])(
+    'HttpException padrão vira %s com status e mensagem padrão',
+    (code, exception, status, message) => {
+      expect(toErrorResponse(exception)).toEqual({ status, body: { code, message } });
+    },
+  );
+
+  it('mensagem de domínio no formato ErrorResponse passa adiante com o status da exceção', () => {
+    const exception = new ConflictException({
+      code: 'CONFLICT',
+      message: 'Categoria já existe.',
+      details: { field: 'name' },
+    });
+    expect(toErrorResponse(exception)).toEqual({
+      status: 409,
+      body: { code: 'CONFLICT', message: 'Categoria já existe.', details: { field: 'name' } },
+    });
+  });
+
+  it('mensagem de domínio sem details não ganha a chave details', () => {
+    const exception = new NotFoundException({
+      code: 'NOT_FOUND',
+      message: 'Conta não encontrada.',
+    });
+    expect(toErrorResponse(exception)).toEqual({
+      status: 404,
+      body: { code: 'NOT_FOUND', message: 'Conta não encontrada.' },
+    });
+  });
+
+  it('mensagem em string simples continua usando o padrão do status', () => {
+    expect(toErrorResponse(new ConflictException('Categoria já existe.'))).toEqual({
+      status: 409,
+      body: { code: 'CONFLICT', message: 'Conflito com o estado atual.' },
+    });
+  });
+
+  it('resposta 404 do roteador do Nest ("Cannot GET") usa a mensagem padrão', () => {
+    expect(toErrorResponse(new NotFoundException('Cannot GET /v1/x')).body).toEqual({
+      code: 'NOT_FOUND',
+      message: 'Recurso não encontrado.',
+    });
+  });
+
+  it('corpo com code fora de ERROR_CODES é ignorado', () => {
+    const exception = new BadRequestException({ code: 'INVENTADO', message: 'x' });
+    expect(toErrorResponse(exception).body).toEqual({
+      code: 'BAD_REQUEST',
+      message: 'Requisição inválida.',
+    });
   });
 
   it('HttpException 5xx vira INTERNAL_ERROR sem vazar a mensagem', () => {

@@ -1,4 +1,4 @@
-import { Controller, Get, HttpStatus, Inject, Res } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject, Logger, Res } from '@nestjs/common';
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
 import type { HealthResponse } from '@nx-balance/contracts';
 import type { Response } from 'express';
@@ -13,6 +13,8 @@ export const DATABASE_TIMEOUT_MS = 2_000;
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(ENV) private readonly env: Env,
@@ -42,7 +44,10 @@ export class HealthController {
     try {
       await Promise.race([this.prisma.$queryRaw`SELECT 1`, timeout]);
       return true;
-    } catch {
+    } catch (error: unknown) {
+      // O motivo vai só para o log; a resposta diz apenas "database: down".
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Banco indisponível no health check: ${reason}`);
       return false;
     } finally {
       clearTimeout(timer);

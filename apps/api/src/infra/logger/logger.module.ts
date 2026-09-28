@@ -14,7 +14,7 @@ import type { Env } from '../config/env';
       useFactory: (env: Env) => ({
         pinoHttp: {
           level: env.LOG_LEVEL,
-          redact: ['req.headers.authorization', 'req.headers.cookie'],
+          redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
           ...(env.NODE_ENV === 'development'
             ? { transport: { target: 'pino-pretty', options: { singleLine: true } } }
             : {}),
